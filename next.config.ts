@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
-// GitHub Pages serves this project site under /<repo> (e.g. /me), so the build
-// needs a basePath. Locally (BASE_PATH unset) the app runs at the root.
+// The site is served at the root of the custom domain (rongxinliu.io), so no
+// basePath is needed. BASE_PATH can still be set to serve under a subpath.
 const basePath = process.env.BASE_PATH ?? "";
 
 const nextConfig: NextConfig = {
