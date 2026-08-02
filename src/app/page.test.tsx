@@ -14,6 +14,6 @@ describe("Home landing page", () => {
   it("centers content vertically and horizontally across the viewport (R2)", () => {
     render(<Home />);
     const main = screen.getByRole("main");
-    expect(main).toHaveClass("min-h-screen", "flex", "items-center", "justify-center");
+    expect(main).toHaveClass("min-h-dvh", "flex", "items-center", "justify-center");
   });
 });
