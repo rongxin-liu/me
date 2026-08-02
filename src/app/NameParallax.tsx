@@ -166,9 +166,11 @@ export default function NameParallax() {
 
     const onOrient = (e: DeviceOrientationEvent) => {
       // gamma: left/right tilt (-90..90), beta: front/back tilt (-180..180).
-      // Clamp to a comfortable ~30deg range so small tilts do the work.
+      // Clamp to a comfortable ~30deg range so small tilts do the work. Null
+      // readings fall back to the neutral rest values (gamma 0, beta 45) so a
+      // device that emits events without data stays centered, not pinned.
       const gamma = e.gamma ?? 0;
-      const beta = e.beta ?? 0;
+      const beta = e.beta ?? 45;
       target.current.x = Math.max(-1, Math.min(1, gamma / 30));
       target.current.y = Math.max(-1, Math.min(1, (beta - 45) / 30));
     };
@@ -189,7 +191,7 @@ export default function NameParallax() {
 
   return (
     <div className={styles.wrapper}>
-      <h1 ref={rootRef} className={styles.name}>
+      <h1 ref={rootRef} className={styles.name} data-active={enabled}>
         {/* Chromatic layers sit behind the crisp base text and only show at the fringes. */}
         <span className={`${styles.layer} ${styles.red}`} aria-hidden="true">
           {TEXT}

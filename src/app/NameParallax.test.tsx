@@ -51,12 +51,15 @@ describe("NameParallax", () => {
     mockMatchMedia({ coarsePointer: false });
     render(<NameParallax />);
     expect(screen.queryByRole("button", { name: /enable motion/i })).toBeNull();
+    // Compositor hint is on only while the effect is active.
+    expect(screen.getByRole("heading").dataset.active).toBe("true");
   });
 
-  it("disables the effect under prefers-reduced-motion (no prompt)", () => {
+  it("disables the effect under prefers-reduced-motion (no prompt, not active)", () => {
     mockMatchMedia({ reducedMotion: true, coarsePointer: true });
     render(<NameParallax />);
     expect(screen.queryByRole("button", { name: /enable motion/i })).toBeNull();
+    expect(screen.getByRole("heading").dataset.active).toBe("false");
   });
 
   it("falls back silently on a touch device with no gyroscope support", () => {

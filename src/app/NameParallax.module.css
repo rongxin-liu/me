@@ -21,6 +21,12 @@
   text-align: center;
   /* Gentle parallax: the whole name drifts slightly with the input. */
   transform: translate3d(var(--shift-x), var(--shift-y), 0);
+}
+
+/* Only hint the compositor while the effect is actually running, so we don't
+   hold GPU layers alive at rest or on devices where the effect never enables. */
+.name[data-active="true"],
+.name[data-active="true"] .layer {
   will-change: transform;
 }
 
@@ -37,11 +43,12 @@
   color: var(--foreground);
 }
 
-/* Colored fringe layers, offset in opposite directions.
-   screen blend keeps overlap neutral and only reveals color at the edges. */
+/* Colored fringe layers, offset in opposite directions. The blend mode is
+   theme-aware: multiply shows color over the light (white) background, screen
+   shows color over the dark (near-black) background. Using screen on white (or
+   multiply on black) would wash the fringe out to invisibility. */
 .layer {
-  mix-blend-mode: screen;
-  will-change: transform;
+  mix-blend-mode: multiply;
 }
 
 .red {
@@ -75,7 +82,12 @@
   color: var(--foreground);
 }
 
-/* Dark mode uses screen blend on a dark bg; the colored layers already suit it. */
+/* Dark mode: screen reveals color over the near-black background. */
+@media (prefers-color-scheme: dark) {
+  .layer {
+    mix-blend-mode: screen;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   .name {
