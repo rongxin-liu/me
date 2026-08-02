@@ -11,6 +11,14 @@ const MAX_SHIFT = 6;
 const MAX_SPLIT = 3;
 // Lerp factor per frame — lower is smoother/laggier, higher snaps faster.
 const SMOOTHING = 0.12;
+// Per-frame decay of the pointer-driven target toward rest. Each frame the
+// target is multiplied by this, so when the cursor stops moving the effect
+// gently winds back to zero (~0.92 ≈ half-life of ~8 frames / ~130ms at 60fps).
+const VELOCITY_DECAY = 0.92;
+// Converts raw pointer movement (px/frame) into normalized intensity. Kept low
+// so there's real dynamic range: gentle moves stay subtle and only fast/volatile
+// movement approaches the -1..1 clamp (the effect's max).
+const VELOCITY_GAIN = 0.006;
 
 type Vec = { x: number; y: number };
 
@@ -77,6 +85,8 @@ export default function NameParallax() {
   // Target (raw input) and rendered (smoothed) offsets, both normalized -1..1.
   const target = useRef<Vec>({ x: 0, y: 0 });
   const rendered = useRef<Vec>({ x: 0, y: 0 });
+  // Last pointer position, to derive movement velocity between events.
+  const lastPointer = useRef<Vec | null>(null);
   const frame = useRef<number | null>(null);
   const rootRef = useRef<HTMLHeadingElement>(null);
 
@@ -97,11 +107,20 @@ export default function NameParallax() {
     el.style.setProperty("--split-y", `${(y * MAX_SPLIT).toFixed(2)}px`);
   }, []);
 
-  // Animation loop: ease rendered offsets toward the target.
+  // Animation loop: decay the pointer-driven target toward rest, then ease the
+  // rendered offsets toward the (possibly decaying) target.
   useEffect(() => {
     if (!enabled) return;
 
+    const decays = support === "pointer";
+
     const tick = () => {
+      if (decays) {
+        // When the cursor stops, no new velocity arrives and the target winds
+        // down to zero, gently restoring the name to its neutral state.
+        target.current.x *= VELOCITY_DECAY;
+        target.current.y *= VELOCITY_DECAY;
+      }
       rendered.current.x += (target.current.x - rendered.current.x) * SMOOTHING;
       rendered.current.y += (target.current.y - rendered.current.y) * SMOOTHING;
       applyStyles();
@@ -113,19 +132,31 @@ export default function NameParallax() {
       if (frame.current !== null) cancelAnimationFrame(frame.current);
       frame.current = null;
     };
-  }, [enabled, applyStyles]);
+  }, [enabled, support, applyStyles]);
 
-  // Pointer input (desktop).
+  // Pointer input (desktop): drive the effect by movement velocity/volatility.
   useEffect(() => {
     if (!enabled || support !== "pointer") return;
 
     const onMove = (e: PointerEvent) => {
-      // Offset from viewport center, normalized to -1..1.
-      target.current.x = (e.clientX / window.innerWidth) * 2 - 1;
-      target.current.y = (e.clientY / window.innerHeight) * 2 - 1;
+      const prev = lastPointer.current;
+      lastPointer.current = { x: e.clientX, y: e.clientY };
+      if (!prev) return;
+
+      // Instantaneous velocity (px since last event) scaled into intensity.
+      // Faster / more volatile movement accumulates a larger offset; the rAF
+      // decay drains it, so sustained motion is needed to hold the effect.
+      const vx = (e.clientX - prev.x) * VELOCITY_GAIN;
+      const vy = (e.clientY - prev.y) * VELOCITY_GAIN;
+      target.current.x = Math.max(-1, Math.min(1, target.current.x + vx));
+      target.current.y = Math.max(-1, Math.min(1, target.current.y + vy));
     };
+
     window.addEventListener("pointermove", onMove, { passive: true });
-    return () => window.removeEventListener("pointermove", onMove);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      lastPointer.current = null;
+    };
   }, [enabled, support]);
 
   // Gyroscope input (mobile). Runs once permission is granted (support becomes
