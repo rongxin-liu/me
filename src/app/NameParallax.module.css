@@ -1,0 +1,88 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+/* The name container carries the CSS custom properties updated from JS.
+   Defaults are 0 so SSR / no-JS / reduced-motion render a static, centered name. */
+.name {
+  --shift-x: 0px;
+  --shift-y: 0px;
+  --split-x: 0px;
+  --split-y: 0px;
+
+  position: relative;
+  display: inline-grid;
+  font-weight: 600;
+  font-size: clamp(1.875rem, 6vw, 3rem);
+  line-height: 1.1;
+  text-align: center;
+  /* Gentle parallax: the whole name drifts slightly with the input. */
+  transform: translate3d(var(--shift-x), var(--shift-y), 0);
+  will-change: transform;
+}
+
+/* All three text copies occupy the same grid cell so they overlap exactly. */
+.base,
+.layer {
+  grid-area: 1 / 1;
+  margin: 0;
+  user-select: none;
+}
+
+.base {
+  position: relative;
+  color: var(--foreground);
+}
+
+/* Colored fringe layers, offset in opposite directions.
+   screen blend keeps overlap neutral and only reveals color at the edges. */
+.layer {
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+
+.red {
+  color: #ff0040;
+  transform: translate3d(
+    calc(var(--split-x) * -1),
+    calc(var(--split-y) * -1),
+    0
+  );
+}
+
+.cyan {
+  color: #00e5ff;
+  transform: translate3d(var(--split-x), var(--split-y), 0);
+}
+
+.enable {
+  font-size: 0.8125rem;
+  letter-spacing: 0.02em;
+  padding: 0.4rem 0.9rem;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--foreground) 25%, transparent);
+  color: color-mix(in srgb, var(--foreground) 70%, transparent);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.enable:hover {
+  border-color: color-mix(in srgb, var(--foreground) 45%, transparent);
+  color: var(--foreground);
+}
+
+/* Dark mode uses screen blend on a dark bg; the colored layers already suit it. */
+
+@media (prefers-reduced-motion: reduce) {
+  .name {
+    transform: none;
+  }
+  .red,
+  .cyan {
+    display: none;
+  }
+}
